@@ -1,7 +1,7 @@
 {
-  "name": "ble-beacon",
+  "name": "ble-eddystonebeaconconfigservice",
   "version": "0.0.1",
-  "description": "BLE iBeacon example, building with yotta",
+  "description": "This example demonstrates how to set up and initialize a Eddystone Beacon.",
   "licenses": [
     {
       "url": "https://spdx.org/licenses/Apache-2.0",

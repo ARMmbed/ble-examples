@@ -54,8 +54,7 @@ void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *cbParams)
     if (true == params.isConfigured){
         // end advertising, the beacon is configured
         timeout();
-    }
-    else{
+    } else{
         // eddystone is not configured, continue advertising
         ble.gap().startAdvertising();
     }

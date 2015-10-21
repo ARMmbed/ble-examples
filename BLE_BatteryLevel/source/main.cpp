@@ -29,7 +29,6 @@ static BatteryService* batteryServicePtr;
 
 void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *params)
 {
-    printf("Restarting the advertising process\n\r");
     BLE::Instance().gap().startAdvertising();
 }
 

@@ -45,12 +45,10 @@ void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *params)
 void blinkCallback(void)
 {
     led1 = !led1; /* Do blinky on LED1 to indicate system aliveness. */
-    printf("Changing LED state\n\r");
 }
 
 void app_start(int, char**)
 {
-    printf("Starting program\n\r");
     minar::Scheduler::postCallback(blinkCallback).period(minar::milliseconds(500));
 
     BLE &ble = BLE::Instance();

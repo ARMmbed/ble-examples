@@ -4,6 +4,13 @@ GATT characteristic that contains the battery level.
 Checking for Success
 ====================
 
-Your BatteryLevel peripheral should be detectable by BLE scanners (e.g. a smartphone)
-and by the Google Physical Web app. You can connect to it and observe how the batterry
-level characteristic changes.
+Your BatteryLevel peripheral should be detectable by BLE scanners (e.g. a
+smartphone). To use your phone as a BLE scanner simply install one of the
+following apps:
+
+- For Android, you can get [nRF Master Control Panel](https://play.google.com/store/apps/detailsid=no.nordicsemi.android.mcp&hl=en).
+
+- For iPhone, you can get [LightBlue](https://itunes.apple.com/gb/app/lightblue-bluetooth-low-energy/id557428110?mt=8).
+
+Using the phone app you can connect to the peripheral and observe how the
+battery level characteristic changes.

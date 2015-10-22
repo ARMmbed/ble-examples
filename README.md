@@ -86,7 +86,16 @@ At this point, you should have the following
 
 In order to verify that the example are working properly, you should follow the
 README.md of the specific example, which will explain in more detail what the example
-does and how to test it.
+does and how to test it. In general, to see BLE devices and their advertisement
+or beacon information, get one of the following installed on your phone:
+
+- The `physical web` app. You can get that app for [iOS](https://itunes.apple.com/us/app/physical-web/id927653608?mt=8) and for [Android](https://play.google.com/store/apps/details?id=physical_web.org.physicalweb).
+  *Only useful to see beacons advertising URLs*
+
+- For Android, you can get [nRF Master Control Panel](https://play.google.com/store/apps/detailsid=no.nordicsemi.android.mcp&hl=en).
+
+- For iPhone, you can get [LightBlue](https://itunes.apple.com/gb/app/lightblue-bluetooth-low-energy/id557428110?mt=8).
+
 
 Creating your own applications that use BLE in mbed OS
 ======================================================

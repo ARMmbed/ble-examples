@@ -5,5 +5,5 @@ Checking for Success
 ====================
 
 Your BatteryLevel peripheral should be detectable by BLE scanners (e.g. a smartphone)
-and by the Google Physical Web app. You can connect to it and update some of the
-characteristics from your smartphone app.
+and by the Google Physical Web app. You can connect to it and observe how the batterry
+level characteristic changes.

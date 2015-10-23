@@ -19,8 +19,6 @@
 #include "ble/DiscoveredCharacteristic.h"
 #include "ble/DiscoveredService.h"
 
-#define DUMP_READ_DATA 1
-
 DigitalOut alivenessLED(LED1, 1);
 static DiscoveredCharacteristic ledCharacteristic;
 static bool triggerLedCharacteristic;
@@ -30,7 +28,6 @@ void periodicCallback(void) {
 }
 
 void advertisementCallback(const Gap::AdvertisementCallbackParams_t *params) {
-        printf("Got advert for peedAddr[%02x %02x %02x %02x %02x %02x]\n\r", params->peerAddr[5], params->peerAddr[4], params->peerAddr[3], params->peerAddr[2], params->peerAddr[1], params->peerAddr[0]);
     if (params->peerAddr[0] != 0x29) { /* !ALERT! Alter this filter to suit your device. */
         return;
     }
@@ -112,7 +109,6 @@ void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *) {
 }
 
 void app_start(int, char**) {
-    printf("Started\n\r");
     triggerLedCharacteristic = false;
 
     minar::Scheduler::postCallback(periodicCallback).period(minar::milliseconds(500));
@@ -122,9 +118,7 @@ void app_start(int, char**) {
     ble.gap().onDisconnection(disconnectionCallback);
     ble.gap().onConnection(connectionCallback);
 
-    /* After we read, execute a write to toggle the LED */
     ble.gattClient().onDataRead(triggerToggledWrite);
-    /* After a write, then we execute a read that in turn leads to a write */
     ble.gattClient().onDataWrite(triggerRead);
 
     ble.gap().setScanParams(500, 400);

@@ -9,6 +9,7 @@
     }
   ],
   "dependencies": {
+    "mbed-hal-nrf51822-mcu": "AlessandroA/mbed-hal-nrf51822-mcu",
     "ble": "^1.0.0"
   },
   "bin": "./source"

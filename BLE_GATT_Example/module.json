@@ -1,0 +1,18 @@
+{
+  "name": "ble-gattexample",
+  "version": "0.0.1",
+  "description": "GATT Example",
+  "licenses": [
+    {
+      "url": "https://spdx.org/licenses/Apache-2.0",
+      "type": "Apache-2.0"
+    }
+  ],
+  "dependencies": {
+    "mbed-hal-nrf51822-mcu": "AlessandroA/mbed-hal-nrf51822-mcu#1.1.1",
+    "ble": "^1.0.0"
+  },
+  "targetDependencies": {
+  },
+  "bin": "./source"
+}

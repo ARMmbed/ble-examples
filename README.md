@@ -37,18 +37,9 @@ are descibed below.
 Targets for BLE
 ---------------
 
-The following targets have been tested to work with these examples:
+Use this target and this target only:
 
-Nordic (using the nrf51822-ble module):
-
-* nrf51dk-armcc
-* nrf51dk-gcc
-* mkit-gcc
-* mkit-armcc
-
-ST (using the st-ble module):
-
-* frdm-k64f-st-ble-gcc (a FRDM-k64f with an ST BLE shield)
+* blenano-gcc
 
 *When adding a new BLE-capable target, you should test it with these examples (most
 of which are already included in the test-suite anyway) and then submit a pull request

@@ -10,7 +10,7 @@
   ],
   "bin": "./source",
   "dependencies": {
-    "mbed-hal-nrf51822-mcu": "AlessandroA/mbed-hal-nrf51822-mcu",
+    "mbed-hal-nrf51822-mcu": "AlessandroA/mbed-hal-nrf51822-mcu#1.1.1",
     "ble": "^1.0.0"
   }
 }

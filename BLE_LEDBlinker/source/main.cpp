@@ -21,6 +21,7 @@
 
 DigitalOut alivenessLED(LED1, 1);
 static DiscoveredCharacteristic ledCharacteristic;
+static bool triggerLedCharacteristic;
 
 void periodicCallback(void) {
     alivenessLED = !alivenessLED; /* Do blinky on LED1 while we're waiting for BLE events */
@@ -60,12 +61,16 @@ void characteristicDiscoveryCallback(const DiscoveredCharacteristic *characteris
     printf("  C UUID-%x valueAttr[%u] props[%x]\r\n", characteristicP->getUUID().getShortUUID(), characteristicP->getValueHandle(), (uint8_t)characteristicP->getProperties().broadcast());
     if (characteristicP->getUUID().getShortUUID() == 0xa001) { /* !ALERT! Alter this filter to suit your device. */
         ledCharacteristic        = *characteristicP;
-        minar::Scheduler::postCallback(updateLedCharacteristic);
+        triggerLedCharacteristic = true;
     }
 }
 
 void discoveryTerminationCallback(Gap::Handle_t connectionHandle) {
     printf("terminated SD for handle %u\r\n", connectionHandle);
+    if (triggerLedCharacteristic) {
+        triggerLedCharacteristic = false;
+        minar::Scheduler::postCallback(updateLedCharacteristic);
+    }
 }
 
 void connectionCallback(const Gap::ConnectionCallbackParams_t *params) {
@@ -99,9 +104,13 @@ void triggerRead(const GattWriteCallbackParams *response) {
 
 void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *) {
     printf("disconnected\r\n");
+    /* Start scanning and try to connect again */
+    BLE::Instance().gap().startScan(advertisementCallback);
 }
 
 void app_start(int, char**) {
+    triggerLedCharacteristic = false;
+
     minar::Scheduler::postCallback(periodicCallback).period(minar::milliseconds(500));
 
     BLE &ble = BLE::Instance();

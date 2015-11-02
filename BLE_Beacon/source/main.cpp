@@ -20,9 +20,23 @@
 
 BLE ble;
 
-void app_start(int argc, char *argv[])
+void onBleInitError(BLE &ble, ble_error_t error)
 {
-    ble.init();
+    // Initialization error handling should go here
+}
+
+void bleInitComplete(BLE &ble, ble_error_t error)
+{
+    if (error != BLE_ERROR_NONE) {
+        // in case of error, forward the error handling to onBleInitError
+        onBleInitError(ble, error);
+        return;
+    }
+
+    // ensure that it is the default instance of BLE
+    if(ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
+        return;
+    }
 
     /**
      * The Beacon payload has the following composition:
@@ -41,4 +55,9 @@ void app_start(int argc, char *argv[])
 
     ble.gap().setAdvertisingInterval(1000); /* 1000ms. */
     ble.gap().startAdvertising();
+}
+
+void app_start(int argc, char *argv[])
+{
+    ble.init(bleInitComplete);
 }

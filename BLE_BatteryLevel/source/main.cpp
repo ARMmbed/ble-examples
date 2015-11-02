@@ -50,11 +50,17 @@ void blinkCallback(void)
     }
 }
 
+/**
+ * This function is called when the ble initialization process has failled
+ */
 void onBleInitError(BLE &ble, ble_error_t error)
 {
     // Initialization error handling should go here
 }
 
+/**
+ * Callback triggered when the ble initialization process has finished
+ */
 void bleInitComplete(BLE &ble, ble_error_t error)
 {
     if (error != BLE_ERROR_NONE) {

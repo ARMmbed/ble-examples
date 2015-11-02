@@ -92,7 +92,7 @@ or beacon information, get one of the following installed on your phone:
 - The `physical web` app. You can get that app for [iOS](https://itunes.apple.com/us/app/physical-web/id927653608?mt=8) and for [Android](https://play.google.com/store/apps/details?id=physical_web.org.physicalweb).
   *Only useful to see beacons advertising URLs*
 
-- For Android, you can get [nRF Master Control Panel](https://play.google.com/store/apps/detailsid=no.nordicsemi.android.mcp&hl=en).
+- For Android, you can get [nRF Master Control Panel](https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp&hl=en).
 
 - For iPhone, you can get [LightBlue](https://itunes.apple.com/gb/app/lightblue-bluetooth-low-energy/id557428110?mt=8).
 
@@ -144,13 +144,13 @@ sources which get picked up automatically for builds--in the case of
 BLE_BEacon, there's a `main.cpp` under its `source/`.
 
 More can be learnt about yotta from [this
-tutorial](http://docs.yottabuild.org/tutorial/tutorial.html).
+tutorial](http://yottadocs.mbed.com/).
 
 
 Creating new BLE yotta application-modules
 ------------------------------------------
 
-Please refer to yotta documentation on [creating an executable](http://docs.yottabuild.org/tutorial/tutorial.html#Creating%20an%20Executable).
+Please refer to yotta documentation on [creating an executable](http://yottadocs.mbed.com/tutorial/tutorial.html#Creating%20an%20Executable).
 BLE applications would typically depend on the `ble` module to use
 [BLE API](https://github.com/ARMmbed/ble), as can be seen from https://github.com/ARMmbed/ble-examples/blob/master/BLE_Beacon/module.json#L13.
 Applications would also need the mbed-drivers module to bring in mbed OS APIs, minar, and capabilities of the target platform.

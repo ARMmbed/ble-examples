@@ -33,6 +33,7 @@
 static const int CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS = 60;  // Duration after power-on that config service is available.
 
 /* global static objects */
+BLE ble;
 URIBeaconConfigService *uriBeaconConfig;
 URIBeaconConfigService::Params_t params;
 
@@ -41,12 +42,11 @@ URIBeaconConfigService::Params_t params;
  */
 void timeout(void)
 {
-    BLE &ble = BLE::Instance();
     Gap::GapState_t state;
-    state = ble.gap().getState();
+    state = ble.getGapState();
     if (!state.connected) { /* don't switch if we're in a connected state. */
         uriBeaconConfig->setupURIBeaconAdvertisements();
-        ble.gap().startAdvertising();
+        ble.startAdvertising();
     } else {
         minar::Scheduler::postCallback(timeout).delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000));
     }
@@ -57,26 +57,13 @@ void timeout(void)
  */
 void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *)
 {
-    BLE::Instance().gap().startAdvertising();
+    ble.startAdvertising();
 }
 
-void onBleInitError(BLE &ble, ble_error_t error)
+void app_start(int, char *[])
 {
-   /* Initialization error handling should go here */
-}
-
-void bleInitComplete(BLE &ble, ble_error_t error)
-{
-    if (error != BLE_ERROR_NONE) {
-        onBleInitError(ble, error);
-        return;
-    }
-
-    if (ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
-        return;
-    }
-
-    ble.gap().onDisconnection(disconnectionCallback);
+    ble.init();
+    ble.onDisconnection(disconnectionCallback);
 
     /*
      * Load parameters from (platform specific) persistent storage. Parameters
@@ -91,21 +78,16 @@ void bleInitComplete(BLE &ble, ble_error_t error)
     static URIBeaconConfigService::PowerLevels_t defaultAdvPowerLevels = {-20, -4, 0, 10}; // Values for ADV packets related to firmware levels
     uriBeaconConfig = new URIBeaconConfigService(ble, params, !fetchedFromPersistentStorage, "http://uribeacon.org", defaultAdvPowerLevels);
     if (!uriBeaconConfig->configuredSuccessfully()) {
-        return;
+        error("failed to accommodate URI");
     }
 
     // Setup auxiliary services to allow over-the-air firmware updates, etc
     DFUService *dfu = new DFUService(ble);
     DeviceInformationService *deviceInfo = new DeviceInformationService(ble, "ARM", "UriBeacon", "SN1", "hw-rev1", "fw-rev1", "soft-rev1");
 
-    ble.gap().startAdvertising(); /* Set the whole thing in motion. After this call a GAP central can scan the URIBeaconConfig
+    ble.startAdvertising(); /* Set the whole thing in motion. After this call a GAP central can scan the URIBeaconConfig
                              * service. This can then be switched to the normal URIBeacon functionality after a timeout. */
 
     /* Post a timeout callback to be invoked in ADVERTISEMENT_TIMEOUT_SECONDS to affect the switch to beacon mode. */
     minar::Scheduler::postCallback(timeout).delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000));
-}
-
-void app_start(int, char *[])
-{
-    BLE::Instance().init(bleInitComplete);
 }

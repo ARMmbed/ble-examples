@@ -10,6 +10,6 @@
   ],
   "bin": "./source",
   "dependencies": {
-    "ble": "^1.0.0"
+    "ble": "^2.0.0"
   }
 }

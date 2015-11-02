@@ -47,12 +47,24 @@ void blinkCallback(void)
     led1 = !led1; /* Do blinky on LED1 to indicate system aliveness. */
 }
 
-void app_start(int, char**)
+void onBleInitError(BLE &ble, ble_error_t error)
 {
-    minar::Scheduler::postCallback(blinkCallback).period(minar::milliseconds(500));
+    // Initialization error handling should go here
+}
 
-    BLE &ble = BLE::Instance();
-    ble.init();
+void bleInitComplete(BLE &ble, ble_error_t error)
+{
+    if (error != BLE_ERROR_NONE) {
+        // in case of error, forward the error handling to onBleInitError
+        onBleInitError(ble, error);
+        return;
+    }
+
+    // ensure that it is the default instance of BLE
+    if(ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
+        return;
+    }
+
     ble.gap().onDisconnection(disconnectionCallback);
 
     button.fall(buttonPressedCallback);
@@ -68,4 +80,12 @@ void app_start(int, char**)
     ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
     ble.gap().setAdvertisingInterval(1000); /* 1000ms. */
     ble.gap().startAdvertising();
+}
+
+void app_start(int, char**)
+{
+    minar::Scheduler::postCallback(blinkCallback).period(minar::milliseconds(500));
+
+    BLE &ble = BLE::Instance();
+    ble.init(bleInitComplete);
 }

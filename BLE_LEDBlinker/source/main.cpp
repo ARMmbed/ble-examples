@@ -108,13 +108,22 @@ void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *) {
     BLE::Instance().gap().startScan(advertisementCallback);
 }
 
-void app_start(int, char**) {
-    triggerLedCharacteristic = false;
+void onBleInitError(BLE &ble, ble_error_t error)
+{
+   /* Initialization error handling should go here */
+}
 
-    minar::Scheduler::postCallback(periodicCallback).period(minar::milliseconds(500));
+void bleInitComplete(BLE &ble, ble_error_t error)
+{
+    if (error != BLE_ERROR_NONE) {
+        onBleInitError(ble, error);
+        return;
+    }
 
-    BLE &ble = BLE::Instance();
-    ble.init();
+    if (ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
+        return;
+    }
+
     ble.gap().onDisconnection(disconnectionCallback);
     ble.gap().onConnection(connectionCallback);
 
@@ -123,4 +132,12 @@ void app_start(int, char**) {
 
     ble.gap().setScanParams(500, 400);
     ble.gap().startScan(advertisementCallback);
+}
+
+void app_start(int, char**) {
+    triggerLedCharacteristic = false;
+
+    minar::Scheduler::postCallback(periodicCallback).period(minar::milliseconds(500));
+
+    BLE::Instance().init(bleInitComplete);
 }

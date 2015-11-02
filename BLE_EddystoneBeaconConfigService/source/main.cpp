@@ -15,6 +15,7 @@
  */
 
 #include "mbed.h"
+#include "mbed-drivers/mbed_error.h"
 #include "ble/BLE.h"
 #include "ble/services/EddystoneConfigService.h"
 #include "ConfigParamsPersistence.h"
@@ -40,9 +41,11 @@ static const int CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS = 30;  // Duration after p
 void timeout(void)
 {
     Gap::GapState_t state;
-    state = ble.getGapState();
+    state = ble.gap().getState();
     if (!state.connected) { /* don't switch if we're in a connected state. */
         EddystoneBeaconConfig->setupEddystoneAdvertisements();
+    } else {
+         minar::Scheduler::postCallback(timeout).delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000));
     }
 }
 
@@ -60,9 +63,30 @@ void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *cbParams)
     }
 }
 
-void app_start(int, char *[])
+/**
+ * This function is called when the ble initialization process has failled
+ */
+void onBleInitError(BLE &ble, ble_error_t error)
 {
-    ble.init();
+    // Initialization error handling should go here
+}
+
+/**
+ * Callback triggered when the ble initialization process has finished
+ */
+void bleInitComplete(BLE &ble, ble_error_t error)
+{
+    if (error != BLE_ERROR_NONE) {
+        // in case of error, forward the error handling to onBleInitError
+        onBleInitError(ble, error);
+        return;
+    }
+
+    // ensure that it is the default instance of BLE
+    if(ble.getInstanceID() != BLE::DEFAULT_INSTANCE) {
+        return;
+    }
+
     ble.gap().onDisconnection(disconnectionCallback);
 
     /*
@@ -95,11 +119,16 @@ void app_start(int, char *[])
     EddystoneBeaconConfig->start(!fetchedFromPersistentStorage);
 
     if (!EddystoneBeaconConfig->initSuccessfully()) {
-        error("failed to accommodate URI");
+        ::error("failed to accommodate URI");
     }
     /* Post a timeout callback to be invoked in CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS to affect the switch to beacon mode. */
     minar::Scheduler::postCallback(timeout).delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000));
 
     ble.gap().startAdvertising(); /* Set the whole thing in motion. After this call a GAP central can scan the EddystoneBeaconConfig
                                    * service. This can then be switched to the normal URIBeacon functionality after a timeout. */
+}
+
+void app_start(int, char *[])
+{
+    ble.init(bleInitComplete);
 }

@@ -18,8 +18,7 @@
 #define SERVICES_EDDYSTONEBEACON_H_
 
 #include "ble/BLE.h"
-#include "stdio.h"
-#include "mbed.h"
+#include "mbed-drivers/mbed.h"
 
 #define UUID_URL_BEACON(FIRST, SECOND) {                         \
         0xee, 0x0c, FIRST, SECOND, 0x87, 0x86, 0x40, 0xba,       \
@@ -82,6 +81,13 @@ public:
         NUM_EDDYSTONE_FRAMES
     };
 
+    enum EddystoneError_t {
+        EDDYSTONE_ERROR_NONE,
+        EDDYSTONE_ERROR_INVALID_BEACON_PERIOD,
+        EDDYSTONE_ERROR_INVALID_CONSEC_FRAMES,
+        EDDYSTONE_ERROR_INVALID_ADVERTISING_INTERVAL
+    };
+
     static const uint32_t DEFAULT_CONFIG_PERIOD_MSEC = 1000;
 
     static const uint16_t DEFAULT_BEACON_PERIOD_MSEC = 1000;
@@ -139,23 +145,15 @@ public:
         tlmBatteryVoltageCallback(NULL),
         tlmBeaconTemperatureCallback(NULL)
     {
-        advConfigInterval = (advConfigIntervalIn > 0) ? checkBeaconPeriodBounds(advConfigIntervalIn) : 0;
         lockState         = paramsIn.lockState;
         flags             = paramsIn.flags;
         txPowerMode       = paramsIn.txPowerMode;
         beaconPeriod      = checkBeaconPeriodBounds(paramsIn.beaconPeriod);
 
-        memcpy(radioPowerLevels, radioPowerLevelsIn, sizeof(PowerLevels_t));
-        memcpy(advPowerLevels,   advPowerLevelsIn,   sizeof(PowerLevels_t));
         memcpy(lock,             paramsIn.lock,      sizeof(Lock_t));
         memcpy(unlock,           paramsIn.unlock,    sizeof(Lock_t));
 
-        /* TODO: Note that this timer is started from the time EddystoneService
-         * is initialised and NOT from when the device is booted. So app need
-         * to take care that EddystoneServices is one of the first things to be
-         * started!
-         */
-        timeSinceBootTimer.start();
+        eddystoneConstructorHelper(advPowerLevelsIn, radioPowerLevelsIn, advConfigIntervalIn);
     }
 
     /* When using this constructor we need to call setURLData,
@@ -180,17 +178,7 @@ public:
         tlmBatteryVoltageCallback(NULL),
         tlmBeaconTemperatureCallback(NULL)
     {
-        advConfigInterval = (advConfigIntervalIn > 0) ? checkBeaconPeriodBounds(advConfigIntervalIn) : 0;
-
-        memcpy(radioPowerLevels, radioPowerLevelsIn, sizeof(PowerLevels_t));
-        memcpy(advPowerLevels,   advPowerLevelsIn,   sizeof(PowerLevels_t));
-
-        /* TODO: Note that this timer is started from the time EddystoneService
-         * is initialised and NOT from when the device is booted. So app need
-         * to take care that EddystoneServices is one of the first things to be
-         * started!
-         */
-        timeSinceBootTimer.start();
+        eddystoneConstructorHelper(advPowerLevelsIn, radioPowerLevelsIn, advConfigIntervalIn);
     }
 
     /* Setup callback to update BatteryVoltage in TLM frame */
@@ -220,14 +208,14 @@ public:
         uidFrame.setUIDData(uidNamespaceIDIn, uidInstanceIDIn);
     }
 
-    void startConfigService(void)
+    EddystoneError_t startConfigService(void)
     {
         if (operationMode == EDDYSTONE_MODE_CONFIG) {
             /* Nothing to do, we are already in config mode */
-            return;
+            return EDDYSTONE_ERROR_NONE;
         } else if (advConfigInterval == 0) {
             /* Nothing to do, the advertisement interval is 0 */
-            return;
+            return EDDYSTONE_ERROR_INVALID_ADVERTISING_INTERVAL;
         }
 
         if (operationMode == EDDYSTONE_MODE_BEACON) {
@@ -236,24 +224,25 @@ public:
             freeBeaconFrames();
             operationMode = EDDYSTONE_MODE_CONFIG;
             ble.init(this, &EddystoneService::bleInitComplete);
-            return;
+            return EDDYSTONE_ERROR_NONE;
         }
 
         operationMode = EDDYSTONE_MODE_CONFIG;
         setupConfigService();
+        return EDDYSTONE_ERROR_NONE;
     }
 
-    void startBeaconService(uint16_t consecUrlFramesIn = 2, uint16_t consecUidFramesIn = 2, uint16_t consecTlmFramesIn = 2)
+    EddystoneError_t startBeaconService(uint16_t consecUrlFramesIn = 2, uint16_t consecUidFramesIn = 2, uint16_t consecTlmFramesIn = 2)
     {
         if (operationMode == EDDYSTONE_MODE_BEACON) {
             /* Nothing to do, we are already in beacon mode */
-            return;
+            return EDDYSTONE_ERROR_NONE;
         } else if (!consecUrlFramesIn && !consecUidFramesIn && !consecTlmFramesIn) {
             /* Nothing to do, the user wants 0 consecutive frames of everything */
-            return;
+            return EDDYSTONE_ERROR_INVALID_CONSEC_FRAMES;
         } else if (!beaconPeriod) {
             /* Nothing to do, the period is 0 for all frames */
-            return;
+            return EDDYSTONE_ERROR_INVALID_BEACON_PERIOD;
         }
 
         /* Setup tracking of the current advertised frame. Note that this will
@@ -272,16 +261,16 @@ public:
             freeConfigCharacteristics();
             operationMode = EDDYSTONE_MODE_BEACON;
             ble.init(this, &EddystoneService::bleInitComplete);
-            return;
+            return EDDYSTONE_ERROR_NONE;
         }
 
         operationMode = EDDYSTONE_MODE_BEACON;
         setupBeaconService();
+        return EDDYSTONE_ERROR_NONE;
     }
 
-
     /* It is not the responsibility of the Eddystone implementation to store
-     * the configured parameters in persisten storage since this is
+     * the configured parameters in persistent storage since this is
      * platform-specific. So we provide this function that returns the
      * configured values that need to be stored and the main application
      * takes care of storing them.
@@ -305,6 +294,26 @@ public:
 
 private:
 
+    /* Helper function used only once during constructing the object to avoid
+     * duplicated code.
+     */
+    void eddystoneConstructorHelper(PowerLevels_t &advPowerLevelsIn,
+                                    PowerLevels_t &radioPowerLevelsIn,
+                                    uint32_t      advConfigIntervalIn)
+    {
+        advConfigInterval = (advConfigIntervalIn > 0) ? checkBeaconPeriodBounds(advConfigIntervalIn) : 0;
+
+        memcpy(radioPowerLevels, radioPowerLevelsIn, sizeof(PowerLevels_t));
+        memcpy(advPowerLevels,   advPowerLevelsIn,   sizeof(PowerLevels_t));
+
+        /* TODO: Note that this timer is started from the time EddystoneService
+         * is initialised and NOT from when the device is booted. So app needs
+         * to take care that EddystoneService is one of the first things to be
+         * started!
+         */
+        timeSinceBootTimer.start();
+    }
+
     /* When changing modes, we shutdown and init the BLE instance, so
      * this is needed to complete the initialisation task.
      */
@@ -315,13 +324,16 @@ private:
             return;
         }
 
-        if (operationMode == EDDYSTONE_MODE_CONFIG) {
+        switch (operationMode) {
+        case EDDYSTONE_MODE_CONFIG:
             setupConfigService();
-        } else if (operationMode == EDDYSTONE_MODE_BEACON) {
+            break;
+        case EDDYSTONE_MODE_BEACON:
             setupBeaconService();
-        } else {
+            break;
+        default:
             /* Some error occurred */
-            return;
+            break;
         }
     }
 
@@ -361,10 +373,8 @@ private:
         }
     }
 
-    void updateAdvertisementPacket(uint8_t* rawFrame, size_t rawFrameLength) {
+    void updateAdvertisementPacket(const uint8_t* rawFrame, size_t rawFrameLength) {
         ble.gap().clearAdvertisingPayload();
-        ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_NON_CONNECTABLE_UNDIRECTED);
-        ble.gap().setAdvertisingInterval(beaconPeriod);
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LIST_16BIT_SERVICE_IDS, EDDYSTONE_UUID, sizeof(EDDYSTONE_UUID));
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::SERVICE_DATA, rawFrame, rawFrameLength);
@@ -391,8 +401,12 @@ private:
 
         /* Configure advertisements */
         ble.gap().setTxPower(radioPowerLevels[txPowerMode]);
-        swapAdvertisedFrame();
+        ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_NON_CONNECTABLE_UNDIRECTED);
+        ble.gap().setAdvertisingInterval(beaconPeriod);
         ble.gap().onRadioNotification(this, &EddystoneService::radioNotificationCallback);
+
+        /* Set advertisement packet payload */
+        swapAdvertisedFrame();
     }
 
     void setupConfigService(void)
@@ -460,6 +474,7 @@ private:
          * the advertisement period is consistent
          */
         ble.gap().stopAdvertising();
+        swapAdvertisedFrame();
         stopAdv.attach_us(this, &EddystoneService::swapAdvertisedFrame, beaconPeriod * 1000);
     }
 

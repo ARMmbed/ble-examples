@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "mbed.h"
+#include "mbed-drivers/mbed.h"
 #include "ble/BLE.h"
 #include "EddystoneService.h"
 #include "ConfigParamsPersistence.h"
@@ -67,12 +67,14 @@ static void onBleInitError(BLE::InitializationCompleteCallbackContext* initConte
 
 static void bleInitComplete(BLE::InitializationCompleteCallbackContext* initContext)
 {
-    if (initContext->error != BLE_ERROR_NONE) {
+    BLE         &ble  = initContext->ble;
+    ble_error_t error = initContext->error;
+
+    if (error != BLE_ERROR_NONE) {
         onBleInitError(initContext);
         return;
     }
 
-    BLE &ble = initContext->ble;
     ble.gap().onDisconnection(disconnectionCallback);
 
     /*

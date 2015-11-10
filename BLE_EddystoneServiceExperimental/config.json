@@ -1,6 +1,6 @@
 {
   "nordic": {
-    "softdevice": "S110"
+    "softdevice": "S130"
   },
   "mbed": {
     "max-filehandles": 4

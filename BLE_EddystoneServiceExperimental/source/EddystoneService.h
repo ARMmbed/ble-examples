@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef SERVICES_EDDYSTONEBEACON_H_
-#define SERVICES_EDDYSTONEBEACON_H_
+#ifndef __EDDYSTONESERVICE_H__
+#define __EDDYSTONESERVICE_H__
 
 #include "ble/BLE.h"
 #include "mbed-drivers/mbed.h"
@@ -92,25 +92,23 @@ public:
 
     static const uint16_t DEFAULT_BEACON_PERIOD_MSEC = 1000;
 
-    // Maximum size of service data in ADV packets
-    static const uint16_t MAX_ADV_PACKET_SIZE       = 31;
-
-    typedef uint8_t Lock_t[16];                             /* 128 bits */
+    /* 128 bits of lock */
+    typedef uint8_t Lock_t[16];
     typedef int8_t PowerLevels_t[NUM_POWER_MODES];
 
     static const uint16_t URL_DATA_MAX = 18;
     typedef uint8_t UrlData_t[URL_DATA_MAX];
 
-    // UID Frame Type subfields
+    /* UID Frame Type subfields */
     static const size_t UID_NAMESPACEID_SIZE = 10;
     typedef uint8_t UIDNamespaceID_t[UID_NAMESPACEID_SIZE];
     static const size_t UID_INSTANCEID_SIZE = 6;
     typedef uint8_t UIDInstanceID_t[UID_INSTANCEID_SIZE];
 
-    // Callbacks for updating BateryVoltage and Temperature
+    /* Callbacks for updating BateryVoltage and Temperature */
     typedef uint16_t (*TlmUpdateCallback_t) (uint16_t);
 
-    // Size of Eddystone UUID needed for all frames
+    /* Size of Eddystone UUID needed for all frames */
     static const uint16_t EDDYSTONE_UUID_SIZE = sizeof(EDDYSTONE_UUID);
 
     static const uint16_t TOTAL_CHARACTERISTICS = 9;
@@ -674,14 +672,14 @@ private:
         return beaconPeriodIn;
     }
 
-    struct TLMFrameFactory
+    struct TLMFrame
     {
     public:
-        TLMFrameFactory(uint8_t  tlmVersionIn           = 0,
-                        uint16_t tlmBatteryVoltageIn    = 0,
-                        uint16_t tlmBeaconTemperatureIn = 0x8000,
-                        uint32_t tlmPduCountIn          = 0,
-                        uint32_t tlmTimeSinceBootIn     = 0) :
+        TLMFrame(uint8_t  tlmVersionIn           = 0,
+                 uint16_t tlmBatteryVoltageIn    = 0,
+                 uint16_t tlmBeaconTemperatureIn = 0x8000,
+                 uint32_t tlmPduCountIn          = 0,
+                 uint32_t tlmTimeSinceBootIn     = 0) :
             tlmVersion(tlmVersionIn),
             lastTimeSinceBootRead(0),
             tlmBatteryVoltage(tlmBatteryVoltageIn),
@@ -778,16 +776,16 @@ private:
         uint32_t             tlmTimeSinceBoot;
     };
 
-    class UIDFrameFactory
+    class UIDFrame
     {
     public:
-        UIDFrameFactory(void)
+        UIDFrame(void)
         {
             memset(uidNamespaceID, 0, sizeof(UIDNamespaceID_t));
             memset(uidInstanceID,  0,  sizeof(UIDInstanceID_t));
         }
 
-        UIDFrameFactory(const UIDNamespaceID_t uidNamespaceIDIn,
+        UIDFrame(const UIDNamespaceID_t uidNamespaceIDIn,
                         const UIDInstanceID_t  uidInstanceIDIn)
         {
             memcpy(uidNamespaceID, uidNamespaceIDIn, sizeof(UIDNamespaceID_t));
@@ -844,21 +842,21 @@ private:
         UIDInstanceID_t      uidInstanceID;
     };
 
-    struct URLFrameFactory
+    struct URLFrame
     {
     public:
-        URLFrameFactory(void)
+        URLFrame(void)
         {
             urlDataLength = 0;
             memset(urlData, 0, sizeof(UrlData_t));
         }
 
-        URLFrameFactory(const char *urlDataIn)
+        URLFrame(const char *urlDataIn)
         {
             encodeURL(urlDataIn);
         }
 
-        URLFrameFactory(UrlData_t urlDataIn, uint8_t urlDataLength)
+        URLFrame(UrlData_t urlDataIn, uint8_t urlDataLength)
         {
             if (urlDataLength > URL_DATA_MAX) {
                 memcpy(urlData, urlDataIn, URL_DATA_MAX);
@@ -984,9 +982,9 @@ private:
     uint32_t                                                        advConfigInterval;
     uint8_t                                                         operationMode;
 
-    URLFrameFactory                                                 urlFrame;
-    UIDFrameFactory                                                 uidFrame;
-    TLMFrameFactory                                                 tlmFrame;
+    URLFrame                                                        urlFrame;
+    UIDFrame                                                        uidFrame;
+    TLMFrame                                                        tlmFrame;
 
     PowerLevels_t                                                   radioPowerLevels;
     PowerLevels_t                                                   advPowerLevels;
@@ -1026,4 +1024,4 @@ private:
     GattCharacteristic                                              *charTable[TOTAL_CHARACTERISTICS];
 };
 
-#endif  // SERVICES_EDDYSTONEBEACON_H_
+#endif  /* __EDDYSTONESERVICE_H__ */

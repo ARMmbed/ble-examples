@@ -472,7 +472,6 @@ private:
          * the advertisement period is consistent
          */
         ble.gap().stopAdvertising();
-        swapAdvertisedFrame();
         stopAdv.attach_us(this, &EddystoneService::swapAdvertisedFrame, beaconPeriod * 1000);
     }
 

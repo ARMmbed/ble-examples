@@ -18,7 +18,11 @@
 #define __EDDYSTONESERVICE_H__
 
 #include "ble/BLE.h"
-#include "mbed-drivers/mbed.h"
+#ifdef YOTTA_CFG_MBED_OS
+    #include "mbed-drivers/mbed.h"
+#else
+    #include "mbed.h"
+#endif
 
 #define UUID_URL_BEACON(FIRST, SECOND) {                         \
         0xee, 0x0c, FIRST, SECOND, 0x87, 0x86, 0x40, 0xba,       \
@@ -129,11 +133,11 @@ public:
     };
 
     /* Initialise the EddystoneService using parameters from persistent storage */
-    EddystoneService(BLE               &bleIn,
-                     EddystoneParams_t &paramsIn,
-                     PowerLevels_t     &advPowerLevelsIn,
-                     PowerLevels_t     &radioPowerLevelsIn,
-                     uint32_t          advConfigIntervalIn = DEFAULT_CONFIG_PERIOD_MSEC) :
+    EddystoneService(BLE                 &bleIn,
+                     EddystoneParams_t   &paramsIn,
+                     const PowerLevels_t &advPowerLevelsIn,
+                     const PowerLevels_t &radioPowerLevelsIn,
+                     uint32_t            advConfigIntervalIn = DEFAULT_CONFIG_PERIOD_MSEC) :
         ble(bleIn),
         operationMode(EDDYSTONE_MODE_NONE),
         urlFrame(paramsIn.urlData, paramsIn.urlDataLength),
@@ -146,7 +150,7 @@ public:
         lockState         = paramsIn.lockState;
         flags             = paramsIn.flags;
         txPowerMode       = paramsIn.txPowerMode;
-        beaconPeriod      = checkBeaconPeriodBounds(paramsIn.beaconPeriod);
+        beaconPeriod      = correctAdvertisementPeriod(paramsIn.beaconPeriod);
 
         memcpy(lock,             paramsIn.lock,      sizeof(Lock_t));
         memcpy(unlock,           paramsIn.unlock,    sizeof(Lock_t));
@@ -157,10 +161,10 @@ public:
     /* When using this constructor we need to call setURLData,
      * setTMLData and setUIDData to initialise values manually
      */
-    EddystoneService(BLE               &bleIn,
-                     PowerLevels_t     &advPowerLevelsIn,
-                     PowerLevels_t     &radioPowerLevelsIn,
-                     uint32_t          advConfigIntervalIn = DEFAULT_CONFIG_PERIOD_MSEC) :
+    EddystoneService(BLE                 &bleIn,
+                     const PowerLevels_t &advPowerLevelsIn,
+                     const PowerLevels_t &radioPowerLevelsIn,
+                     uint32_t            advConfigIntervalIn = DEFAULT_CONFIG_PERIOD_MSEC) :
         ble(bleIn),
         operationMode(EDDYSTONE_MODE_NONE),
         urlFrame(),
@@ -201,7 +205,7 @@ public:
         urlFrame.setURLData(urlDataIn);
     }
 
-    void setUIDData(UIDNamespaceID_t *uidNamespaceIDIn, UIDInstanceID_t *uidInstanceIDIn)
+    void setUIDData(const UIDNamespaceID_t *uidNamespaceIDIn, const UIDInstanceID_t *uidInstanceIDIn)
     {
         uidFrame.setUIDData(uidNamespaceIDIn, uidInstanceIDIn);
     }
@@ -295,11 +299,11 @@ private:
     /* Helper function used only once during constructing the object to avoid
      * duplicated code.
      */
-    void eddystoneConstructorHelper(PowerLevels_t &advPowerLevelsIn,
-                                    PowerLevels_t &radioPowerLevelsIn,
-                                    uint32_t      advConfigIntervalIn)
+    void eddystoneConstructorHelper(const PowerLevels_t &advPowerLevelsIn,
+                                    const PowerLevels_t &radioPowerLevelsIn,
+                                    uint32_t            advConfigIntervalIn)
     {
-        advConfigInterval = (advConfigIntervalIn > 0) ? checkBeaconPeriodBounds(advConfigIntervalIn) : 0;
+        advConfigInterval = (advConfigIntervalIn > 0) ? correctAdvertisementPeriod(advConfigIntervalIn) : 0;
 
         memcpy(radioPowerLevels, radioPowerLevelsIn, sizeof(PowerLevels_t));
         memcpy(advPowerLevels,   advPowerLevelsIn,   sizeof(PowerLevels_t));
@@ -352,23 +356,28 @@ private:
                 updateAdvertisementPacket(rawUidFrame, uidFrame.getRawFrameSize());
                 return;
             } else if (currentAdvertisedFrame == EDDYSTONE_FRAME_TLM && consecFrames[EDDYSTONE_FRAME_UID] > 0) {
-                /* TODO!!!
-                 * This might not be the desired behaviour because essentially the TLM frame will NOT be
-                 * updated while it is advertised! Therefore, if the TLM frame is the ONLY frame being
-                 * advertised it will never be updated.
-                 */
-                if (tlmBeaconTemperatureCallback != NULL) {
-                    tlmFrame.updateBeaconTemperature((*tlmBeaconTemperatureCallback)(tlmFrame.getBeaconTemperature()));
-                }
-                if (tlmBatteryVoltageCallback != NULL) {
-                    tlmFrame.updateBatteryVoltage((*tlmBatteryVoltageCallback)(tlmFrame.getBatteryVoltage()));
-                }
-                tlmFrame.updateTimeSinceBoot(timeSinceBootTimer.read_ms());
-                tlmFrame.constructTLMFrame(rawTlmFrame, *this);
+                updateRawTLMFrame();
                 updateAdvertisementPacket(rawTlmFrame, tlmFrame.getRawFrameSize());
                 return;
             }
         }
+    }
+
+    /* Helper function that calls user-defined functions to update Battery Voltage and Temperature (if available),
+     * then updates the raw frame data and finally updates the actual advertised packet. This operation must be
+     * done fairly often because the TLM frame TimeSinceBoot must have a 0.1 secs resolution according to the
+     * Eddystone specification.
+     */
+    void updateRawTLMFrame(void)
+    {
+        if (tlmBeaconTemperatureCallback != NULL) {
+            tlmFrame.updateBeaconTemperature((*tlmBeaconTemperatureCallback)(tlmFrame.getBeaconTemperature()));
+        }
+        if (tlmBatteryVoltageCallback != NULL) {
+            tlmFrame.updateBatteryVoltage((*tlmBatteryVoltageCallback)(tlmFrame.getBatteryVoltage()));
+        }
+        tlmFrame.updateTimeSinceBoot(timeSinceBootTimer.read_ms());
+        tlmFrame.constructTLMFrame(rawTlmFrame, *this);
     }
 
     void updateAdvertisementPacket(const uint8_t* rawFrame, size_t rawFrameLength) {
@@ -376,7 +385,6 @@ private:
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::BREDR_NOT_SUPPORTED | GapAdvertisingData::LE_GENERAL_DISCOVERABLE);
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LIST_16BIT_SERVICE_IDS, EDDYSTONE_UUID, sizeof(EDDYSTONE_UUID));
         ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::SERVICE_DATA, rawFrame, rawFrameLength);
-        ble.gap().startAdvertising();
     }
 
     void setupBeaconService(void)
@@ -405,6 +413,9 @@ private:
 
         /* Set advertisement packet payload */
         swapAdvertisedFrame();
+
+        /* Start advertising */
+        ble.gap().startAdvertising();
     }
 
     void setupConfigService(void)
@@ -466,15 +477,6 @@ private:
         delete[] rawTlmFrame;
     }
 
-    void stopAdvertisingCallback(void)
-    {
-        /* Stop advertisements and defer the frame swap so that it looks like
-         * the advertisement period is consistent
-         */
-        ble.gap().stopAdvertising();
-        stopAdv.attach_us(this, &EddystoneService::swapAdvertisedFrame, beaconPeriod * 1000);
-    }
-
     void radioNotificationCallback(bool radioActive)
     {
         if (radioActive) {
@@ -486,12 +488,24 @@ private:
         currentConsecFrames[currentAdvertisedFrame]++;
 
         if (consecFrames[currentAdvertisedFrame] > currentConsecFrames[currentAdvertisedFrame]) {
+            if (currentAdvertisedFrame == EDDYSTONE_FRAME_TLM) {
+                /* Update the TLM frame otherwise we will not meet the 0.1 secs resolution of
+                 * the Eddystone specification.
+                 */
+                updateRawTLMFrame();
+                updateAdvertisementPacket(rawTlmFrame, tlmFrame.getRawFrameSize());
+            }
+            /* Keep advertising the same frame */
             return;
         }
 
         currentConsecFrames[currentAdvertisedFrame] = 0;
 
-        stopAdv.attach_us(this, &EddystoneService::stopAdvertisingCallback, 1);
+#ifdef YOTTA_CFG_MBED_OS
+        minar::Scheduler::postCallback(this, &EddystoneService::swapAdvertisedFrame);
+#else
+        swapAdvertisedFrameTimeout.attach_us(this, &EddystoneService::swapAdvertisedFrame);
+#endif
     }
 
     /*
@@ -636,7 +650,7 @@ private:
             txPowerMode = *(writeParams->data);
             ble.gattServer().write(txPowerModeChar->getValueHandle(), &txPowerMode, sizeof(uint8_t));
         } else if (handle == beaconPeriodChar->getValueHandle()) {
-            uint16_t tmpBeaconPeriod = checkBeaconPeriodBounds(*((uint16_t *)(writeParams->data)));
+            uint16_t tmpBeaconPeriod = correctAdvertisementPeriod(*((uint16_t *)(writeParams->data)));
             if (tmpBeaconPeriod != beaconPeriod) {
                 beaconPeriod = tmpBeaconPeriod;
                 ble.gattServer().write(beaconPeriodChar->getValueHandle(), reinterpret_cast<uint8_t *>(&beaconPeriod), sizeof(uint16_t));
@@ -658,7 +672,7 @@ private:
         }
     }
 
-    uint16_t checkBeaconPeriodBounds(uint16_t beaconPeriodIn) const
+    uint16_t correctAdvertisementPeriod(uint16_t beaconPeriodIn) const
     {
         /* Re-map beaconPeriod to within permissible bounds if necessary. */
         if (beaconPeriodIn != 0) {
@@ -795,7 +809,7 @@ private:
          * const pointers, but this seems a bit of an overkill and might cause problems when
          * initialising the program using EddystoneParams_t.
          */
-        void setUIDData(UIDNamespaceID_t *uidNamespaceIDIn, UIDInstanceID_t *uidInstanceIDIn)
+        void setUIDData(const UIDNamespaceID_t *uidNamespaceIDIn, const UIDInstanceID_t *uidInstanceIDIn)
         {
             memcpy(uidNamespaceID, uidNamespaceIDIn, sizeof(UIDNamespaceID_t));
             memcpy(uidInstanceID,  uidInstanceIDIn,  sizeof(UIDInstanceID_t));
@@ -1017,8 +1031,9 @@ private:
     TlmUpdateCallback_t                                             tlmBeaconTemperatureCallback;
 
     Timer                                                           timeSinceBootTimer;
-    /* TODO: Modify this to use minar scheduler. */
-    Timeout                                                         stopAdv;
+#ifdef YOTTA_CFG_MBED_OS
+    Timeout                                                         swapAdvertisedFrameTimeout;
+#endif
 
     GattCharacteristic                                              *charTable[TOTAL_CHARACTERISTICS];
 };

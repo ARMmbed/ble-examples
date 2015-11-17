@@ -32,6 +32,7 @@ After cloning the parent repository, switch to the subfolder BLE_EddystoneServic
 execute the following:
 
 ```Shell
+vim config.json #Choose between S110/S130 - S110 if you have a 16K device
 yotta target <an_appropriate_target_such_as_mkit-gcc>
 yotta install
 yotta build

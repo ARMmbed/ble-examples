@@ -93,7 +93,7 @@ static void initializeEddystoneToDefaults(BLE &ble)
 
     /* Set default URL, UID and TLM frame data if not initialized through the config service */
     eddyServicePtr->setURLData(defaultUrl);
-    eddyServicePtr->setUIDData(&uidNamespaceID, &uidInstanceID);
+    eddyServicePtr->setUIDData(uidNamespaceID, uidInstanceID);
     eddyServicePtr->setTLMData(tlmVersion);
 }
 

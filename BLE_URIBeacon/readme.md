@@ -1,61 +1,45 @@
-URI-Beacons are handy when there is a need to advertise a small amount of
-information (usually a URL) to any nearby device. They’re really easy to set
-up: the code is fully available on the mbed website, so all you’ll need to do
-is tell the beacon what to broadcast.
+# UriBeacon
 
-Technical details are better presented [here](https://developer.mbed.org/teams/Bluetooth-Low-Energy/code/BLE_URIBeacon/),
-which happens to be the mbed-classic equivalent of this example. Please also refer to [Google's URIBeacon project](https://github.com/google/uribeacon).
+UriBeacons advertise a bit of information (usually a URL) to any nearby device. This example creates a fully-functional UriBeacon; you just need to tell it what to broadcast.
 
-What You’ll Need
-================
+The UriBeacon's default broadcast is the URL ``"http://uribeacon.org"``. You can replace this URL with your own by editing ``main.cpp``:
 
-To get this going, you’ll need:
-
-- To see BLE devices and their advertisement or beacon information, get one of the following installed on your phone:
-
-  - The `physical web` app. You can get that app for [iOS](https://itunes.apple.com/us/app/physical-web/id927653608?mt=8) and for [Android](https://play.google.com/store/apps/details?id=physical_web.org.physicalweb).
-
-  - For Android, you can get [nRF Master Control Panel](https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp).
-
-  - For iPhone, you can get [LightBlue](https://itunes.apple.com/gb/app/lightblue-bluetooth-low-energy/id557428110?mt=8).
-
-- One of the BLE platforms listed in the README.md of this repository, for example a
-  Nordic DK board.
-
-Build Instructions
-==================
-
-After cloning the parent repository, switch to the subfolder BLE_URIBeacon, and
-execute the following:
-
-```Shell
-yotta target <an_appropriate_target_such_as_mkit-gcc>
-yotta install
-yotta build
 ```
-Assuming that you're building for the nRF51 DK platform, available targets are
-`nrf51dk-armcc` and `nrf51dk-gcc`. You can pick either.
+uriBeaconConfig = new URIBeaconConfigService(ble, params, !fetchedFromPersistentStorage, "http://uribeacon.org", defaultAdvPowerLevels);
+```
 
-The other targets you can use are described in the main README.md for this repository.
+Please note that the UriBeacon isn’t limitless in size. It can only accept 18 characters, with “HTTP://www” counting as one, and the suffix “.org” (or “.com”) counting as another. If your URL is very long, you’ll have to use services like [bit.ly](https://bitly.com/) and [tinyurl.com](http://tinyurl.com/) to get a short version. 
 
-The resulting binaries would be under `build/<yotta_target_name>/source/`.
+**Tip:** You can [learn more about UriBeacons](https://docs.mbed.com/docs/ble-intros/en/latest/mbed_Classic/URIBeacon/) in the mbed Classic version of this example.
 
-Under that folder, the file called `ble-uribeacon-combined.hex` is the one which
-can be flashed to the target using mbed's DAP over USB; the parent README or the
-documentation for your yotta target will explain how to choose between the available
-binaries and hex files.
+# Running the application
 
-Checking for Success
-====================
+## Requirements
 
-Your URI beacon should be detectable by BLE scanners (e.g. a smartphone) and by the
-Google Physical Web app.
+The sample application can be seen on any BLE scanner or Physical Web application on a smartphone. Please install one of the following:
 
-**Please note that the URIBeacon spec requires the URIBeacon app to remain in
-config mode for the first 60 seconds before switching to being a beacon. So if
-you're using a physical-web app, you'll only see the beacon after this period;
-if you're using one of the generic apps for BLE scanning, you should see a
-configurable beacon being advertised for the first 60 seconds.**
+- The Physical Web app for [iOS](https://itunes.apple.com/us/app/physical-web/id927653608?mt=8) and for [Android](https://play.google.com/store/apps/details?id=physical_web.org.physicalweb).
 
-You'll find [links](https://github.com/google/uribeacon/tree/uribeacon-final#contents) on Google's project page to client apps to test URIBeacon. Here's a link that should get you an [Android App](https://github.com/google/uribeacon/releases/tag/v1.2); please browse to `uribeacon-sample-release.apk`. But you should begin with the links to android apps mentioned above.
+- [nRF Master Control Panel](https://play.google.com/store/apps/details?id=no.nordicsemi.android.mcp) for Android.
 
+- [LightBlue](https://itunes.apple.com/gb/app/lightblue-bluetooth-low-energy/id557428110?mt=8) for iPhone.
+
+If you want something slightly more advanced, you can follow the [links on Google's project page](https://github.com/google/uribeacon/tree/uribeacon-final#contents)  to get client apps such as this [Android app](https://github.com/google/uribeacon/releases/tag/v1.2) (use the `uribeacon-sample-release.apk` download at the bottom of the page).
+
+Hardware requirements are in the [main readme](https://github.com/ARMmbed/ble-examples/blob/master/README.md).
+
+## Building instructions
+
+Building instructions for all mbed OS samples are in the [main readme](https://github.com/ARMmbed/ble-examples/blob/master/README.md).
+
+## Checking for success
+
+1. Build the application and install it on your board as explained in the building instructions.
+
+1. Open the BLE scanner on your phone.
+
+1. Find your device.
+
+1. Check that the URL is correct.
+
+**Note:** UriBeacons have two modes: *configuration* and *normal*. The beacon goes into configuration mode on startup, and remains there for 60 seconds. For those 60 seconds, it's visible as configurable only in generic BLE scanners; Physical Web apps will not show the configurable beacon at all. After 60 seconds, the beacon switches to normal mode, and is then visible on all apps but is no longer configurable.

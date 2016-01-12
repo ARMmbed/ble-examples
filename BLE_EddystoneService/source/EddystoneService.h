@@ -37,6 +37,9 @@ public:
     static const uint32_t DEFAULT_CONFIG_PERIOD_MSEC = 1000;
     static const uint16_t DEFAULT_BEACON_PERIOD_MSEC = 1000;
 
+    static const char *DEVICE_NAME;
+    static const char *DEFAULT_URL;
+
     /* Operation modes of the EddystoneService:
      *      NONE: EddystoneService has been initialised but no memory has been
      *            dynamically allocated. Additionally, no services are running
@@ -113,6 +116,8 @@ public:
     void setURLData(const char *urlDataIn);
 
     void setUIDData(const UIDNamespaceID_t &uidNamespaceIDIn, const UIDInstanceID_t &uidInstanceIDIn);
+
+    void setDeviceName(const char *deviceNameIn);
 
     EddystoneError_t startConfigService(void);
 

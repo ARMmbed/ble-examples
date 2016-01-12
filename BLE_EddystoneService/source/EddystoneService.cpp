@@ -16,6 +16,9 @@
 
 #include "EddystoneService.h"
 
+const char *EddystoneService::DEVICE_NAME = "EDDYSTONE CONFIG";
+const char *EddystoneService::DEFAULT_URL = "http://www.mbed.com";
+
 /* Initialise the EddystoneService using parameters from persistent storage */
 EddystoneService::EddystoneService(BLE                 &bleIn,
                                    EddystoneParams_t   &paramsIn,
@@ -92,6 +95,11 @@ void EddystoneService::setURLData(const char *urlDataIn)
 void EddystoneService::setUIDData(const UIDNamespaceID_t &uidNamespaceIDIn, const UIDInstanceID_t &uidInstanceIDIn)
 {
     uidFrame.setUIDData(uidNamespaceIDIn, uidInstanceIDIn);
+}
+
+void EddystoneService::setDeviceName(const char *deviceNameIn)
+{
+    DEVICE_NAME = deviceNameIn;
 }
 
 EddystoneService::EddystoneError_t EddystoneService::startConfigService(void)
@@ -420,14 +428,15 @@ void EddystoneService::setupEddystoneConfigAdvertisements(void)
     }
     ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::COMPLETE_LIST_128BIT_SERVICE_IDS, reversedServiceUUID, sizeof(reversedServiceUUID));
     ble.gap().accumulateAdvertisingPayload(GapAdvertisingData::GENERIC_TAG);
-    ble.gap().accumulateScanResponse(GapAdvertisingData::COMPLETE_LOCAL_NAME, reinterpret_cast<const uint8_t *>(&DEVICE_NAME), sizeof(DEVICE_NAME));
+
+    ble.gap().accumulateScanResponse(GapAdvertisingData::COMPLETE_LOCAL_NAME, reinterpret_cast<const uint8_t *>(DEVICE_NAME), strlen(DEVICE_NAME));
     ble.gap().accumulateScanResponse(
         GapAdvertisingData::TX_POWER_LEVEL,
         reinterpret_cast<uint8_t *>(&advPowerLevels[TX_POWER_MODE_LOW]),
         sizeof(uint8_t));
 
     ble.gap().setTxPower(radioPowerLevels[txPowerMode]);
-    ble.gap().setDeviceName(reinterpret_cast<const uint8_t *>(&DEVICE_NAME));
+    ble.gap().setDeviceName(reinterpret_cast<const uint8_t *>(DEVICE_NAME));
     ble.gap().setAdvertisingType(GapAdvertisingParams::ADV_CONNECTABLE_UNDIRECTED);
     ble.gap().setAdvertisingInterval(advConfigInterval);
     ble.gap().startAdvertising();

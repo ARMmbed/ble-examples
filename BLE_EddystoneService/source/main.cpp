@@ -40,6 +40,9 @@ static const uint32_t advConfigInterval = 500;
 /* Default URL */
 static const char defaultUrl[] = "http://mbed.org";
 
+/* Device name in configuration mode */
+static const char deviceName[] = "EDDYSTONE CONFIG";
+
 /* Values for ADV packets related to firmware levels, calibrated based on measured values at 1m */
 static const PowerLevels_t defaultAdvPowerLevels = {-47, -33, -21, -13};
 /* Values for radio power levels, provided by manufacturer. */
@@ -90,6 +93,9 @@ static void initializeEddystoneToDefaults(BLE &ble)
 {
     /* Set everything to defaults */
     eddyServicePtr = new EddystoneService(ble, defaultAdvPowerLevels, radioPowerLevels, advConfigInterval);
+
+    /* Set device name in configuration mode */
+    eddyServicePtr->setDeviceName(deviceName);
 
     /* Set default URL, UID and TLM frame data if not initialized through the config service */
     eddyServicePtr->setURLData(defaultUrl);

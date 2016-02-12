@@ -9,7 +9,9 @@
     }
   ],
   "dependencies": {
-    "ble": "^2.0.0"
+    "ble": "ARMmbed/ble#develop",
+    "mbed-hal-nordic": "ARMmbed/mbed-hal-nordic#develop",
+    "cmsis-core-nordic": "ARMmbed/cmsis-core-nordic#develop"
   },
   "targetDependencies": {},
   "bin": "./source"

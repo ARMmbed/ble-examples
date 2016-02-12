@@ -6,11 +6,11 @@
     "max-filehandles": 4
   },
   "platform" : {
-    "reset_button" : "BUTTON1",
-    "led" : "LED1",
-    "led_off" : 1,
-    "redled" : "LED2",
-    "redled_off" : 1
+    "reset_button" : "p18",
+    "led" : "p15",
+    "led_off" : "0",
+    "redled" : "p16",
+    "redled_off" : "0"
   },
   "eddystone": {
     "default-device-name": "\"EDDYSTONE CONFIG\"",

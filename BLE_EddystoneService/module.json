@@ -9,7 +9,8 @@
     }
   ],
   "dependencies": {
-    "ble": "^2.0.0"
+    "ble": "^2.0.0",
+    "mbed-drivers": "^0.12.1"
   },
   "targetDependencies": {},
   "bin": "./source"

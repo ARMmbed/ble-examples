@@ -37,7 +37,23 @@ static const PowerLevels_t defaultAdvPowerLevels = {-47, -33, -21, -13};
 /* Values for radio power levels, provided by manufacturer. */
 static const PowerLevels_t radioPowerLevels      = {-30, -16, -4, 4};
 
-DigitalOut led(LED1, 1);
+#define REDLED_OFF YOTTA_CFG_PLATFORM_REDLED_OFF
+#define LED_OFF YOTTA_CFG_PLATFORM_LED_OFF
+
+DigitalOut led(YOTTA_CFG_PLATFORM_LED, LED_OFF);
+DigitalOut redled(YOTTA_CFG_PLATFORM_REDLED, REDLED_OFF);
+InterruptIn button(YOTTA_CFG_PLATFORM_RESET_BUTTON);
+
+static int beaconIsOn = 1;
+static minar::callback_handle_t handle = 0;
+
+static void red_off(void) {
+    redled = REDLED_OFF;
+}
+
+static void led_off(void) {
+    led = LED_OFF;
+}
 
 /**
  * Callback triggered upon a disconnection event.
@@ -46,6 +62,7 @@ static void disconnectionCallback(const Gap::DisconnectionCallbackParams_t *cbPa
 {
     (void) cbParams;
     BLE::Instance().gap().startAdvertising();
+    led_off();
 }
 
 /**
@@ -61,13 +78,91 @@ static void timeout(void)
         eddyServicePtr->getEddystoneParams(params);
         saveEddystoneServiceConfigParams(&params);
     } else {
-        minar::Scheduler::postCallback(timeout).delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000));
+        handle = minar::Scheduler::postCallback(timeout)
+                 .delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000))
+                 .getHandle();
     }
 }
 
+/**
+ * Blink the LED to show that we're in config mode
+ */
+static int stillBlinking = 0;
+static const int BLINKY_ON = 200;
+static const int BLINKY_OFF = 600;
+
+// Could be better way to do this. Recursively calls itself to toggle the LED
+// global stillBlinking is the flag to stop, set in config_LED_off
 static void blinky(void)
 {
-    led = !led;
+    // Creating a blink effect (more off than on)
+    if (stillBlinking) {
+        if (led) {
+            minar::Scheduler::postCallback(blinky).delay(minar::milliseconds(BLINKY_OFF));
+        }
+        else {
+            minar::Scheduler::postCallback(blinky).delay(minar::milliseconds(BLINKY_ON));
+        }
+        led = !led;
+    }
+}
+
+// Stops the blinking
+static void config_LED_off(void) {
+    led = LED_OFF;
+    stillBlinking = 0;
+}
+
+// Starts the blinking
+static void config_LED_on(void) {
+    stillBlinking = 1;
+    led = !LED_OFF;
+    minar::Scheduler::postCallback(blinky).delay(minar::milliseconds(BLINKY_ON));
+    minar::Scheduler::postCallback(config_LED_off).delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000));
+}
+
+
+/**
+ * Callback used to handle button presses from thread mode (not IRQ)
+ */
+static void button_task(void) {
+    /* Once we get here, we don't want the old timeout callback to fire */
+    minar::Scheduler::cancelCallback(handle);
+
+    if (beaconIsOn) {
+        eddyServicePtr->stopCurrentService();
+        beaconIsOn = 0;
+
+        /* Turn the red LED on and schedule a task to turn it off in 1s */
+        redled = !REDLED_OFF;
+        config_LED_off();   // just in case it's still running...
+        minar::Scheduler::postCallback(red_off).delay(minar::milliseconds(1000));
+    } else {
+        /* We always startup in config mode */
+        eddyServicePtr->startConfigService();
+        beaconIsOn = 1;
+        handle = minar::Scheduler::postCallback(timeout)
+                 .delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000))
+                 .getHandle();
+
+        /* Turn on the main LED and schedule a task to turn it off after 1s timeout */
+        config_LED_on();
+    }
+}
+
+/**
+ * Raw IRQ handler for the reset button. We don't want to actually do any work here.
+ * Instead, we queue work to happen later using minar, by posting a callback.
+ * This has the added avantage of serialising actions, so if the button press happens
+ * during the config->beacon mode transition timeout, the button_task won't happen
+ * until the previous task has finished.
+ *
+ * If your buttons aren't debounced, you should do this in software, or button_task
+ * might get queued multiple times.
+ */
+static void reset_rise(void)
+{
+    minar::Scheduler::postCallback(button_task);
 }
 
 static void onBleInitError(BLE::InitializationCompleteCallbackContext* initContext)
@@ -108,9 +203,11 @@ static void bleInitComplete(BLE::InitializationCompleteCallbackContext* initCont
     }
 
     /* Start Eddystone in config mode */
+    config_LED_on();
     eddyServicePtr->startConfigService();
-
-    minar::Scheduler::postCallback(timeout).delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000));
+    handle = minar::Scheduler::postCallback(timeout)
+             .delay(minar::milliseconds(CONFIG_ADVERTISEMENT_TIMEOUT_SECONDS * 1000))
+             .getHandle();
 }
 
 void app_start(int, char *[])
@@ -120,7 +217,7 @@ void app_start(int, char *[])
     setbuf(stderr, NULL);
     setbuf(stdin, NULL);
 
-    minar::Scheduler::postCallback(blinky).period(minar::milliseconds(500));
+    button.rise(&reset_rise);
 
     BLE &ble = BLE::Instance();
     ble.init(bleInitComplete);

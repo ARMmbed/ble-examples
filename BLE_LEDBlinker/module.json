@@ -1,0 +1,17 @@
+{
+  "name": "ble-ledblinker",
+  "version": "0.0.1",
+  "description": "An initial demo showcasing the GattClient APIs. Drives an LED service exported by a BLE_LED peripheral. Shows scanning, connections, service-discovery, and reads/writes.",
+  "licenses": [
+    {
+      "url": "https://spdx.org/licenses/Apache-2.0",
+      "type": "Apache-2.0"
+    }
+  ],
+  "dependencies": {
+    "ble": "ARMmbed/ble#develop",
+    "mbed-hal-nordic": "ARMmbed/mbed-hal-nordic#develop",
+    "cmsis-core-nordic": "ARMmbed/cmsis-core-nordic#develop"
+  },
+  "bin": "./source"
+}

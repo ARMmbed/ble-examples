@@ -1,6 +1,9 @@
+**This repository is superseded by [armmbed/mbed-os-examples-ble](http://github.com/armmbed/mbed-os-example-ble) - which contains BLE example applications for mbed OS 2.0 and mbed OS 5.0.**
+
 # BLE Examples
+
 This repo contains a collection of BLE example applications based on
-mbed OS and built with [yotta](https://github.com/ARMmbed/yotta). Each example subdirectory contains a separate yotta module meant for building an executable.
+mbed OS 3 and built with [yotta](https://github.com/ARMmbed/yotta). Each example subdirectory contains a separate yotta module meant for building an executable.
 
 Please browse to subdirectories for specific documentation.
 
